@@ -10,6 +10,8 @@ const configDir = path.join(require("os").homedir(), ".ai-cli");
 const configPath = path.join(configDir, "config.json");
 const contextDir = path.join(configDir, "contexts");
 
+const DEFAULT_MODEL = "openai/gpt-4o";
+
 function createReadlineInterface() {
   return readline.createInterface({
     input: process.stdin,
@@ -31,12 +33,17 @@ function promptUser(question) {
 function loadConfig() {
   try {
     if (fs.existsSync(configPath)) {
-      return JSON.parse(fs.readFileSync(configPath, "utf8"));
+      const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+      // Set default model if not specified
+      if (!config.model) {
+        config.model = DEFAULT_MODEL;
+      }
+      return config;
     }
   } catch (error) {
     console.error("Error reading config file:", error.message);
   }
-  return {};
+  return { model: DEFAULT_MODEL };
 }
 
 // Save configuration
@@ -213,10 +220,13 @@ async function handleStreamingResponse(response) {
   return fullResponse;
 }
 
-async function sendAIQueryWithContext(messages, contextName, useStreaming = true) {
+async function sendAIQueryWithContext(messages, contextName, useStreaming = true, modelOverride = null) {
   try {
     const apiKey = await getAPIKey();
-    const spinner = ora(`Sending query to context "${contextName}"`).start();
+    const config = loadConfig();
+    const model = modelOverride || config.model || DEFAULT_MODEL;
+    
+    const spinner = ora(`Sending query to ${model} (context: "${contextName}")`).start();
 
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
@@ -227,20 +237,21 @@ async function sendAIQueryWithContext(messages, contextName, useStreaming = true
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "openai/gpt-4o",
+        model: model,
         messages: messages,
         stream: useStreaming,
       }),
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorText = await response.text();
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
     }
 
     let assistantResponse = '';
 
     if (useStreaming) {
-      spinner.succeed(`Connected to context "${contextName}"! Streaming response...\n`);
+      spinner.succeed(`Connected to ${model} (context: "${contextName}")! Streaming response...\n`);
       assistantResponse = await handleStreamingResponse(response);
     } else {
       const data = await response.json();
@@ -267,9 +278,9 @@ async function sendAIQueryWithContext(messages, contextName, useStreaming = true
   }
 }
 
-async function sendAIQuery(query, useStreaming = true) {
+async function sendAIQuery(query, useStreaming = true, modelOverride = null) {
   const messages = [{ role: "user", content: query }];
-  await sendAIQueryWithContext(messages, "temp", useStreaming);
+  await sendAIQueryWithContext(messages, "temp", useStreaming, modelOverride);
 }
 
 program
@@ -282,6 +293,7 @@ program
   .command("config")
   .description("Manage configuration")
   .option("--set-api-key <api-key>", "set your OpenRouter API Key")
+  .option("--set-model <model>", "set default model (e.g., openai/gpt-4o, anthropic/claude-3.5-sonnet)")
   .option("--show", "show current configuration")
   .option("--reset", "reset all configuration")
   .action(async (options) => {
@@ -294,11 +306,26 @@ program
       } else {
         console.error("❌ Failed to save configuration.");
       }
+    } else if (options.setModel) {
+      config.model = options.setModel;
+      if (saveConfig(config)) {
+        console.log(`✅ Default model set to: ${options.setModel}`);
+      } else {
+        console.error("❌ Failed to save configuration.");
+      }
     } else if (options.show) {
       console.log("📋 Current configuration:");
       console.log("OpenRouter API Key:", config.apiKey || "Not set");
+      console.log("Default Model:", config.model || DEFAULT_MODEL);
       console.log("Config file:", configPath);
       console.log("Contexts directory:", contextDir);
+      console.log("\n💡 Popular models:");
+      console.log("  • openai/gpt-4o");
+      console.log("  • openai/gpt-4o-mini");
+      console.log("  • anthropic/claude-3.5-sonnet");
+      console.log("  • anthropic/claude-3-haiku");
+      console.log("  • google/gemini-pro-1.5");
+      console.log("  • meta-llama/llama-3.1-70b-instruct");
     } else if (options.reset) {
       const confirm = await promptUser(
         "Are you sure you want to reset all configuration? (y/N): "
@@ -325,6 +352,7 @@ program
   .command("chat")
   .argument("<message>", "start or continue a conversation")
   .option("--context <name>", "conversation context name", "default")
+  .option("--model <model>", "override default model for this query")
   .option("--new", "start a new conversation (clears context)")
   .option("--no-stream", "disable streaming")
   .action(async (message, options) => {
@@ -345,13 +373,14 @@ program
     
     messages.push({ role: "user", content: message });
     const useStreaming = options.stream !== false;
-    await sendAIQueryWithContext(messages, options.context, useStreaming);
+    await sendAIQueryWithContext(messages, options.context, useStreaming, options.model);
   });
 
 // Quick continue with + command
 program
   .command("+")
   .argument("<message>", "quickly continue the default conversation")
+  .option("--model <model>", "override default model for this query")
   .option("--no-stream", "disable streaming")
   .action(async (message, options) => {
     let context = await loadContext("default");
@@ -366,7 +395,7 @@ program
     
     messages.push({ role: "user", content: message });
     const useStreaming = options.stream !== false;
-    await sendAIQueryWithContext(messages, "default", useStreaming);
+    await sendAIQueryWithContext(messages, "default", useStreaming, options.model);
   });
 
 // Context management command
@@ -432,11 +461,12 @@ program
 // Default action (single query, no context)
 program
   .argument("[query]", "AI query to send")
+  .option("--model <model>", "override default model for this query")
   .option("--no-stream", "disable streaming")
   .action(async (query, options) => {
     if (query) {
       const useStreaming = options.stream !== false;
-      await sendAIQuery(query, useStreaming);
+      await sendAIQuery(query, useStreaming, options.model);
     } else {
       program.help();
     }
