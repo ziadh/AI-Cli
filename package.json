@@ -1,17 +1,29 @@
 {
   "name": "ai-cli",
   "version": "1.0.0",
-  "description": "",
+  "description": "Unofficial OpenRouter API CLI.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
   },
   "bin": {
     "ai": "./index.js"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": ["cli", "tool", "automation", "ai"],
+  "author": "ZiadH",
   "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ziadh/AI-Cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ziadh/AI-Cli/issues"
+  },
+  "homepage": "https://github.com/ziadh/AI-Cli#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "type": "commonjs",
   "dependencies": {
     "axios": "^1.10.0",
