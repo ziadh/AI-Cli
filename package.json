@@ -1,5 +1,5 @@
 {
-  "name": "ai-cli",
+  "name": "@ziadh_/ai-cli",
   "version": "1.0.0",
   "description": "Unofficial OpenRouter API CLI.",
   "main": "index.js",
