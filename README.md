@@ -1,6 +1,6 @@
 # AI CLI Tool
 
-A powerful command-line interface for interacting with AI models through OpenRouter, featuring smart context management, streaming responses, and flexible model selection.
+A powerful command-line interface for interacting with AI models through OpenRouter or Ollama, featuring smart context management, streaming responses, and flexible model selection.
 
 ## 🚀 Features
 
@@ -17,7 +17,9 @@ A powerful command-line interface for interacting with AI models through OpenRou
 
 - Node.js (v14 or higher)
 - npm or yarn
-- OpenRouter API key ([Get one here](https://openrouter.ai/keys))
+- Either:
+  - OpenRouter API key ([Get one here](https://openrouter.ai/keys)) OR
+  - Ollama running locally ([Install Ollama](https://ollama.com/))
 
 ### Install Dependencies
 
@@ -64,6 +66,47 @@ node ai-cli.js config --show
 
 # Reset all configuration
 node ai-cli.js config --reset
+```
+
+### Ollama Support
+
+The CLI now supports Ollama for local AI inference. You can switch between OpenRouter (cloud) and Ollama (local) providers.
+
+```bash
+# Switch to Ollama provider
+ai config --set-provider ollama
+
+# Set Ollama model (must be pulled first with `ollama pull`)
+ai config --set-ollama-model llama3.1
+
+# Set custom Ollama URL (if running on different port/machine)
+ai config --set-ollama-url http://localhost:11434
+
+# Switch back to OpenRouter
+ai config --set-provider openrouter
+```
+
+When using Ollama for the first time, you'll be prompted to enter your preferred model ID. Popular Ollama models include:
+
+- `llama3.1` - Latest Llama 3.1 model
+- `llama3` - Original Llama 3 model
+- `mistral` - Mistral 7B model
+- `gemma2` - Google's Gemma 2 model
+
+Make sure to pull the model first:
+
+```bash
+ollama pull llama3.1
+```
+
+### First Time Setup with Ollama
+
+On first run with Ollama selected, you'll be prompted to enter your preferred model ID:
+
+```bash
+node ai-cli.js "Hello world"
+# Choose provider: 2 (Ollama)
+# Enter model ID: llama3.1
 ```
 
 ## 🎯 Usage
@@ -168,40 +211,43 @@ The tool creates a configuration directory at `~/.ai-cli/`:
 
 ### Main Commands
 
-| Command           | Description                     | Example                       |
-| :---------------- | :------------------------------ | :---------------------------- |
-| `ai [query]`      | Single query                    | `ai "Hello world"`            |
-| `ai chat <message>` | Start/continue conversation     | `ai chat "Let's talk about AI"` |
-| `ai + <message>`  | Quick continue default context  | `ai + "Tell me more"`         |
-| `ai config`       | Manage configuration            | `ai config --show`            |
-| `ai context`      | Manage contexts                 | `ai context --list`           |
+| Command             | Description                    | Example                         |
+| :------------------ | :----------------------------- | :------------------------------ |
+| `ai [query]`        | Single query                   | `ai "Hello world"`              |
+| `ai chat <message>` | Start/continue conversation    | `ai chat "Let's talk about AI"` |
+| `ai + <message>`    | Quick continue default context | `ai + "Tell me more"`           |
+| `ai config`         | Manage configuration           | `ai config --show`              |
+| `ai context`        | Manage contexts                | `ai context --list`             |
 
 ### Options
 
-| Option          | Description             | Available On      |
-| :-------------- | :---------------------- | :---------------- |
-| `--model <model>` | Override default model  | All query commands |
-| `--no-stream`   | Disable streaming       | All query commands |
-| `--context <name>`| Use named context       | `chat` command    |
-| `--new`         | Start fresh conversation| `chat` command    |
+| Option             | Description              | Available On       |
+| :----------------- | :----------------------- | :----------------- |
+| `--model <model>`  | Override default model   | All query commands |
+| `--no-stream`      | Disable streaming        | All query commands |
+| `--context <name>` | Use named context        | `chat` command     |
+| `--new`            | Start fresh conversation | `chat` command     |
 
 ### Configuration Options
 
-| Option              | Description                 |
-| :------------------ | :-------------------------- |
-| `--set-api-key <key>` | Set OpenRouter API key      |
-| `--set-model <model>` | Set default model           |
-| `--show`            | Show current configuration  |
-| `--reset`           | Reset all configuration     |
+| Option                       | Description                            |
+| :--------------------------- | :------------------------------------- |
+| `--set-api-key <key>`        | Set OpenRouter API key                 |
+| `--set-model <model>`        | Set default model                      |
+| `--set-provider <provider>`  | Set AI provider (openrouter or ollama) |
+| `--set-ollama-model <model>` | Set Ollama model ID                    |
+| `--set-ollama-url <url>`     | Set Ollama base URL                    |
+| `--show`                     | Show current configuration             |
+| `--reset`                    | Reset all configuration                |
 
 ### Context Options
 
-| Option          | Description             |
-| :-------------- | :---------------------- |
-| `--list`        | List all contexts       |
-| `--show <name>` | Show context details    |
-| `--clear <name>`| Clear context messages  |
-| `--delete <name>`| Delete context          |
+| Option            | Description            |
+| :---------------- | :--------------------- |
+| `--list`          | List all contexts      |
+| `--show <name>`   | Show context details   |
+| `--clear <name>`  | Clear context messages |
+| `--delete <name>` | Delete context         |
 
 ## 💡 Tips & Best Practices
 
@@ -292,4 +338,5 @@ MIT License - feel free to modify and distribute.
 - Quick continuation with `+`
 
 ---
+
 Made with ❤️ for the AI community
